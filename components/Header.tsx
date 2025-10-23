@@ -1,15 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { usePrivy } from "@privy-io/react-auth";
 
 export default function Header() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [address, setAddress] = useState('');
+  // Check if Privy is available
+  const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+  let login, logout, authenticated, user;
+  
+  // Only use Privy hooks if app ID is available
+  if (privyAppId) {
+    const privy = usePrivy();
+    login = privy.login;
+    logout = privy.logout;
+    authenticated = privy.authenticated;
+    user = privy.user;
+  } else {
+    // Provide fallback values
+    login = () => {};
+    logout = () => {};
+    authenticated = false;
+    user = null;
+  }
 
-  const connectWallet = async () => {
-    // Placeholder for wallet connection logic
-    setIsConnected(true);
-    setAddress('0x1234...5678');
+  const handleAuth = () => {
+    if (authenticated) {
+      logout();
+    } else {
+      login();
+    }
   };
 
   return (
@@ -25,7 +43,7 @@ export default function Header() {
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                 AveLot
               </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Football Betting Pool</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Betting Pool</p>
             </div>
           </div>
 
@@ -44,21 +62,29 @@ export default function Header() {
 
           {/* Wallet Connect */}
           <div className="flex items-center space-x-4">
-            {isConnected ? (
+            {authenticated ? (
               <div className="flex items-center space-x-3">
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">Connected</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{address}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {user?.wallet?.address ? `${user.wallet.address.slice(0, 6)}...${user.wallet.address.slice(-4)}` : ''}
+                  </p>
                 </div>
                 <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center">
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
+                <button
+                  onClick={handleAuth}
+                  className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
+                  Disconnect
+                </button>
               </div>
             ) : (
               <button
-                onClick={connectWallet}
+                onClick={handleAuth}
                 className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-gray-100 transition-all duration-200"
               >
                 Connect Wallet

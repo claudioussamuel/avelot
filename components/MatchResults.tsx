@@ -130,7 +130,7 @@ export default function MatchResults() {
               <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Pool</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{match.totalPool} DAI</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{match.totalPool} USDC</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Winners</p>

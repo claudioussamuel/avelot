@@ -1,6 +1,14 @@
 'use client';
 
+import { useState } from 'react';
+import { useAaveLottery } from '@/hooks/useAaveLottery';
+import { formatUnits } from 'viem';
+
+const USDC_DECIMALS = 6;
+
 export default function UserDashboard() {
+  const { userTicket, currentRound, currentRoundId } = useAaveLottery();
+  
   const userTickets = [
     { roundId: 42, amount: '500', status: 'active', endTime: '2h 45m' },
     { roundId: 41, amount: '300', status: 'ended', canClaim: false },
@@ -18,20 +26,26 @@ export default function UserDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 text-white shadow-lg">
             <p className="text-slate-100 text-sm mb-1">Total Deposited</p>
-            <p className="text-3xl font-bold">1,050</p>
-            <p className="text-sm text-slate-100 mt-1">DAI</p>
+            <p className="text-3xl font-bold">
+              {userTicket && userTicket.stake > BigInt(0) ? formatUnits(userTicket.stake, USDC_DECIMALS) : '0'}
+            </p>
+            <p className="text-sm text-slate-100 mt-1">USDC</p>
           </div>
 
           <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
             <p className="text-blue-100 text-sm mb-1">Active Tickets</p>
-            <p className="text-3xl font-bold">1</p>
+            <p className="text-3xl font-bold">
+              {userTicket && userTicket.stake > BigInt(0) && !userTicket.exited ? '1' : '0'}
+            </p>
             <p className="text-sm text-blue-100 mt-1">Current Round</p>
           </div>
 
           <div className="bg-gradient-to-br from-cyan-600 to-cyan-700 rounded-2xl p-6 text-white shadow-lg">
             <p className="text-cyan-100 text-sm mb-1">Total Winnings</p>
-            <p className="text-3xl font-bold">45.50</p>
-            <p className="text-sm text-cyan-100 mt-1">DAI</p>
+            <p className="text-3xl font-bold">
+              {currentRound && currentRound.award ? formatUnits(currentRound.award, USDC_DECIMALS) : '0'}
+            </p>
+            <p className="text-sm text-cyan-100 mt-1">USDC</p>
           </div>
 
           <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg">
@@ -90,9 +104,9 @@ export default function UserDashboard() {
                         </span>
                       </div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        Deposited: {ticket.amount} DAI
+                        Deposited: {ticket.amount} USDC
                         {ticket.status === 'active' && ` • Ends in ${ticket.endTime}`}
-                        {ticket.status === 'won' && ` • Prize: ${ticket.prize} DAI`}
+                        {ticket.status === 'won' && ` • Prize: ${ticket.prize} USDC`}
                       </p>
                     </div>
                   </div>

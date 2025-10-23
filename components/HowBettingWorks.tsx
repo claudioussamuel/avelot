@@ -143,24 +143,24 @@ export default function HowBettingWorks() {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <span className="text-gray-700 dark:text-gray-300">Total Prize Pool:</span>
-                <span className="font-bold text-gray-900 dark:text-white">10,000 DAI</span>
+                <span className="font-bold text-gray-900 dark:text-white">10,000 USDC</span>
               </div>
               <div className="flex items-center justify-between p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
                 <span className="text-gray-700 dark:text-gray-300">Winning Team Pool:</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">4,000 DAI (40%)</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">4,000 USDC (40%)</span>
               </div>
               <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <span className="text-gray-700 dark:text-gray-300">Your Bet:</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400">100 DAI (2.5% of winning pool)</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400">100 USDC (2.5% of winning pool)</span>
               </div>
               <div className="border-t-2 border-gray-200 dark:border-gray-700 pt-4">
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/30 rounded-lg">
                   <span className="text-lg font-semibold text-gray-900 dark:text-white">Your Winnings:</span>
-                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">250 DAI (2.5x)</span>
+                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">250 USDC (2.5x)</span>
                 </div>
               </div>
               <p className="text-sm text-center text-gray-500 dark:text-gray-400 mt-4">
-                You receive 2.5% of the total pool (10,000 DAI) = 250 DAI
+                You receive 2.5% of the total pool (10,000 USDC) = 250 USDC
               </p>
             </div>
           </div>

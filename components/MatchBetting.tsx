@@ -116,7 +116,7 @@ export default function MatchBetting() {
               <p className="text-sm text-slate-300 mb-1">Home Win</p>
               <p className="text-2xl font-bold text-white mb-2">{homeOdds}x</p>
               <div className="text-xs text-slate-400">
-                <p>Pool: {matchData.homePool} DAI</p>
+                <p>Pool: {matchData.homePool} USDC</p>
               </div>
             </div>
           </button>
@@ -134,7 +134,7 @@ export default function MatchBetting() {
               <p className="text-sm text-slate-300 mb-1">Draw</p>
               <p className="text-2xl font-bold text-white mb-2">{drawOdds}x</p>
               <div className="text-xs text-slate-400">
-                <p>Pool: {matchData.drawPool} DAI</p>
+                <p>Pool: {matchData.drawPool} USDC</p>
               </div>
             </div>
           </button>
@@ -152,7 +152,7 @@ export default function MatchBetting() {
               <p className="text-sm text-slate-300 mb-1">Away Win</p>
               <p className="text-2xl font-bold text-white mb-2">{awayOdds}x</p>
               <div className="text-xs text-slate-400">
-                <p>Pool: {matchData.awayPool} DAI</p>
+                <p>Pool: {matchData.awayPool} USDC</p>
               </div>
             </div>
           </button>
@@ -175,7 +175,7 @@ export default function MatchBetting() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Bet Amount (DAI)
+                  Bet Amount (USDC)
                 </label>
                 <input
                   type="number"
@@ -191,7 +191,7 @@ export default function MatchBetting() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-700 dark:text-gray-300">Potential Winnings:</span>
                     <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                      {(parseFloat(betAmount) * parseFloat(selectedTeam === 'home' ? homeOdds : selectedTeam === 'away' ? awayOdds : drawOdds)).toFixed(2)} DAI
+                      {(parseFloat(betAmount) * parseFloat(selectedTeam === 'home' ? homeOdds : selectedTeam === 'away' ? awayOdds : drawOdds)).toFixed(2)} USDC
                     </span>
                   </div>
                 </div>
@@ -215,7 +215,7 @@ export default function MatchBetting() {
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Prize Pool</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{matchData.totalPool} DAI</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{matchData.totalPool} USDC</p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Bettors</p>

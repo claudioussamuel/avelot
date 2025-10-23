@@ -74,7 +74,7 @@ export default function WinnerHistory() {
                 <div className="text-right">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Prize Won</p>
                   <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                    {winner.prize} DAI
+                    {winner.prize} USDC
                   </p>
                 </div>
               </div>
@@ -86,7 +86,7 @@ export default function WinnerHistory() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Staked</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{winner.totalStaked} DAI</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{winner.totalStaked} USDC</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Ended</p>

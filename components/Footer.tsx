@@ -11,11 +11,11 @@ export default function Footer() {
               </div>
               <div>
                 <h3 className="text-xl font-bold">AveLot</h3>
-                <p className="text-sm text-gray-400">Football Betting Pool</p>
+                <p className="text-sm text-gray-400">Betting Pool</p>
               </div>
             </div>
             <p className="text-gray-400 mb-4 max-w-md">
-              AveLot is a decentralized football betting pool powered by Aave Protocol. 
+              AveLot is a decentralized betting pool powered by Aave Protocol. 
               Bet on match outcomes and share the prize pool with other winners!
             </p>
             <div className="flex space-x-4">

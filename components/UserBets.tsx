@@ -46,7 +46,7 @@ export default function UserBets() {
           <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 text-white shadow-lg">
             <p className="text-slate-100 text-sm mb-1">Total Bet</p>
             <p className="text-3xl font-bold">1,050</p>
-            <p className="text-sm text-slate-100 mt-1">DAI</p>
+            <p className="text-sm text-slate-100 mt-1">USDC</p>
           </div>
 
           <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl p-6 text-white shadow-lg">
@@ -58,7 +58,7 @@ export default function UserBets() {
           <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-6 text-white shadow-lg">
             <p className="text-emerald-100 text-sm mb-1">Total Winnings</p>
             <p className="text-3xl font-bold">875</p>
-            <p className="text-sm text-emerald-100 mt-1">DAI</p>
+            <p className="text-sm text-emerald-100 mt-1">USDC</p>
           </div>
 
           <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-6 text-white shadow-lg">
@@ -117,7 +117,7 @@ export default function UserBets() {
                         </span>
                       </div>
                       <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                        <span>Bet: {bet.amount} DAI</span>
+                        <span>Bet: {bet.amount} USDC</span>
                         <span>•</span>
                         <span className="capitalize">Predicted: {bet.prediction === 'home' ? bet.homeTeam : bet.prediction === 'away' ? bet.awayTeam : 'Draw'}</span>
                         {bet.status === 'active' && (
@@ -129,7 +129,7 @@ export default function UserBets() {
                         {bet.status === 'won' && (
                           <>
                             <span>•</span>
-                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Won {bet.winnings} DAI</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-medium">Won {bet.winnings} USDC</span>
                           </>
                         )}
                       </div>
@@ -140,12 +140,12 @@ export default function UserBets() {
                     {bet.status === 'active' && (
                       <div className="text-right">
                         <p className="text-xs text-gray-500 dark:text-gray-400">Potential Win</p>
-                        <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{bet.potentialWin} DAI</p>
+                        <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{bet.potentialWin} USDC</p>
                       </div>
                     )}
                     {bet.status === 'won' && (
                       <button className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200">
-                        Claim {bet.winnings} DAI
+                        Claim {bet.winnings} USDC
                       </button>
                     )}
                     {bet.status === 'ended' && !bet.canClaim && (
