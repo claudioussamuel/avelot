@@ -1,6 +1,6 @@
 // AaveLottery Contract Configuration
 // ⚠️ WARNING: This address is from Sepolia - you need to deploy to Base Mainnet and update this!
-export const AAVE_LOTTERY_ADDRESS = "0x1502b55cb677ae1c514cd87aa103a3a33ad82876" as const;
+export const AAVE_LOTTERY_ADDRESS = "0x4a5551407D6DbB026E29A8f53fBA7215945cd5f8" as const;
 
 // USDC Token on Base Mainnet (Production)
 export const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const; // Base Mainnet USDC
