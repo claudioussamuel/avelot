@@ -10,17 +10,25 @@ export interface Round {
   winnerTicket: bigint;
   winner: Address;
   scaledBalanceStake: bigint;
+  finalized: boolean;
 }
 
 export interface Ticket {
   stake: bigint;
   segmentStart: bigint;
   exited: boolean;
+  claimed: boolean;
+}
+
+export interface HistoryItem {
+  roundId: bigint;
+  round: Round;
+  ticket: Ticket;
 }
 
 export function useAaveLottery() {
-  const { readContract, writeContract, waitForTransactionReceipt, address, authenticated } = useViemWithPrivy();
-  
+  const { readContract, writeContract, waitForTransactionReceipt, address, authenticated, publicClient } = useViemWithPrivy();
+
   const [currentRoundId, setCurrentRoundId] = useState<bigint | null>(null);
   const [currentRound, setCurrentRound] = useState<Round | null>(null);
   const [userTicket, setUserTicket] = useState<Ticket | null>(null);
@@ -34,7 +42,7 @@ export function useAaveLottery() {
       const id = await readContract(
         AAVE_LOTTERY_ADDRESS,
         AAVE_LOTTERY_ABI,
-        "currentId"
+        "currentRoundId"
       ) as bigint;
       setCurrentRoundId(id);
       return id;
@@ -67,7 +75,7 @@ export function useAaveLottery() {
       const ticket = await readContract(
         AAVE_LOTTERY_ADDRESS,
         AAVE_LOTTERY_ABI,
-        "getTicker",
+        "getTicket",
         [roundId, userAddress]
       ) as Ticket;
       setUserTicket(ticket);
@@ -158,16 +166,16 @@ export function useAaveLottery() {
       );
 
       console.log("Transaction submitted:", hash);
-      
+
       const receipt = await waitForTransactionReceipt(hash);
       console.log("Transaction confirmed:", receipt);
-      
+
       // Refresh data after successful entry
       await fetchCurrentRoundId();
       if (currentRoundId && address) {
         await fetchUserTicket(currentRoundId, address);
       }
-      
+
       return receipt;
     } catch (error) {
       console.error("Error entering lottery:", error);
@@ -193,15 +201,15 @@ export function useAaveLottery() {
       );
 
       console.log("Transaction submitted:", hash);
-      
+
       const receipt = await waitForTransactionReceipt(hash);
       console.log("Transaction confirmed:", receipt);
-      
+
       // Refresh data after successful exit
       if (address) {
         await fetchUserTicket(roundId, address);
       }
-      
+
       return receipt;
     } catch (error) {
       console.error("Error exiting lottery:", error);
@@ -227,10 +235,10 @@ export function useAaveLottery() {
       );
 
       console.log("Transaction submitted:", hash);
-      
+
       const receipt = await waitForTransactionReceipt(hash);
       console.log("Transaction confirmed:", receipt);
-      
+
       return receipt;
     } catch (error) {
       console.error("Error claiming winnings:", error);
@@ -247,12 +255,12 @@ export function useAaveLottery() {
         fetchRoundDuration(),
         fetchUnderlyingToken()
       ]);
-      
+
       const roundId = await fetchCurrentRoundId();
-      
+
       if (roundId !== null) {
         await fetchRound(roundId);
-        
+
         if (address) {
           await fetchUserTicket(roundId, address);
         }
@@ -300,5 +308,95 @@ export function useAaveLottery() {
     enterLottery,
     exitLottery,
     claimWinnings,
+    finalizeRound: useCallback(async () => {
+      if (!authenticated) {
+        throw new Error("Please connect your wallet first");
+      }
+
+      setLoading(true);
+      try {
+        const hash = await writeContract(
+          AAVE_LOTTERY_ADDRESS,
+          AAVE_LOTTERY_ABI,
+          "finalizeRound",
+          []
+        );
+        console.log("Transaction submitted:", hash);
+
+        const receipt = await waitForTransactionReceipt(hash);
+        console.log("Transaction confirmed:", receipt);
+
+        // Refresh data after successful finalization
+        await fetchCurrentRoundId();
+        if (currentRoundId) {
+          await fetchRound(currentRoundId);
+        }
+
+        return receipt;
+      } catch (error) {
+        console.error("Error finalizing round:", error);
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    }, [authenticated, writeContract, waitForTransactionReceipt, fetchCurrentRoundId, fetchRound, currentRoundId]),
+    fetchParticipants: useCallback(async (roundId: bigint) => {
+      if (!publicClient) return [];
+      try {
+        const logs = await publicClient.getLogs({
+          address: AAVE_LOTTERY_ADDRESS,
+          event: {
+            type: 'event',
+            name: 'UserEntered',
+            inputs: [
+              { type: 'uint256', name: 'roundId', indexed: true },
+              { type: 'address', name: 'user', indexed: true },
+              { type: 'uint256', name: 'amount', indexed: false },
+              { type: 'uint256', name: 'segmentStart', indexed: false }
+            ]
+          },
+          args: {
+            roundId: roundId
+          },
+          fromBlock: 'earliest'
+        });
+
+        // Extract unique users
+        const users = new Set<Address>();
+        logs.forEach(log => {
+          if (log.args && log.args.user) {
+            users.add(log.args.user);
+          }
+        });
+
+        return Array.from(users);
+      } catch (error) {
+        console.error("Error fetching participants:", error);
+        return [];
+      }
+    }, [publicClient]),
+    fetchHistory: useCallback(async (userAddress: Address) => {
+      if (!currentRoundId) return [];
+      const history: HistoryItem[] = [];
+      // Fetch last 10 rounds or up to round 0
+      const startRound = currentRoundId;
+      const endRound = currentRoundId > BigInt(10) ? currentRoundId - BigInt(10) : BigInt(0);
+
+      for (let i = startRound; i >= endRound; i--) {
+        try {
+          const [round, ticket] = await Promise.all([
+            readContract(AAVE_LOTTERY_ADDRESS, AAVE_LOTTERY_ABI, "getRound", [i]) as Promise<Round>,
+            readContract(AAVE_LOTTERY_ADDRESS, AAVE_LOTTERY_ABI, "getTicket", [i, userAddress]) as Promise<Ticket>
+          ]);
+
+          if (ticket.stake > BigInt(0)) {
+            history.push({ roundId: i, round, ticket });
+          }
+        } catch (e) {
+          console.error(`Error fetching history for round ${i}`, e);
+        }
+      }
+      return history;
+    }, [currentRoundId, readContract])
   };
 }

@@ -20,7 +20,9 @@ export default function LotteryInterface() {
     enterLottery,
     exitLottery,
     claimWinnings,
+    finalizeRound,
     refreshRoundData,
+    fetchParticipants,
   } = useAaveLottery();
 
   const {
@@ -36,6 +38,7 @@ export default function LotteryInterface() {
   const [txLoading, setTxLoading] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
   const [txSuccess, setTxSuccess] = useState<string | null>(null);
+  const [participants, setParticipants] = useState<string[]>([]);
   const [, setTick] = useState(0); // Force re-render every second for countdown
 
   // Update countdown every second
@@ -45,6 +48,17 @@ export default function LotteryInterface() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch participants
+  useEffect(() => {
+    const loadParticipants = async () => {
+      if (currentRoundId) {
+        const users = await fetchParticipants(currentRoundId);
+        setParticipants(users);
+      }
+    };
+    loadParticipants();
+  }, [currentRoundId, fetchParticipants, txSuccess]);
 
   const handleEnter = async () => {
     if (!entryAmount || parseFloat(entryAmount) <= 0) {
@@ -121,16 +135,32 @@ export default function LotteryInterface() {
     }
   };
 
+  const handleFinalize = async () => {
+    setTxLoading(true);
+    setTxError(null);
+    setTxSuccess(null);
+
+    try {
+      await finalizeRound();
+      setTxSuccess('Round finalized successfully!');
+      await refreshRoundData();
+    } catch (error: any) {
+      setTxError(error.message || 'Failed to finalize round');
+    } finally {
+      setTxLoading(false);
+    }
+  };
+
   const formatTimeRemaining = (endTime: bigint) => {
     const now = Math.floor(Date.now() / 1000);
     const remaining = Number(endTime) - now;
-    
+
     if (remaining <= 0) return 'Round ended';
-    
+
     const days = Math.floor(remaining / 86400);
     const hours = Math.floor((remaining % 86400) / 3600);
     const minutes = Math.floor((remaining % 3600) / 60);
-    
+
     if (days > 0) return `${days}d ${hours}h ${minutes}m`;
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
@@ -138,6 +168,8 @@ export default function LotteryInterface() {
 
   const isWinner = currentRound && address && currentRound.winner.toLowerCase() === address.toLowerCase();
   const hasTicket = userTicket && userTicket.stake > BigInt(0) && !userTicket.exited;
+  const isRoundOver = currentRound && BigInt(Math.floor(Date.now() / 1000)) >= currentRound.endTime;
+  const isFinalized = currentRound?.finalized;
 
   if (!authenticated) {
     return (
@@ -160,7 +192,7 @@ export default function LotteryInterface() {
           <p className="text-red-800 dark:text-red-200 text-sm">{txError}</p>
         </div>
       )}
-      
+
       {txSuccess && (
         <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
           <p className="text-green-800 dark:text-green-200 text-sm">{txSuccess}</p>
@@ -316,6 +348,55 @@ export default function LotteryInterface() {
           Round Duration: {(Number(roundDuration) / 86400).toFixed(1)} days
         </div>
       )}
+
+      {/* Finalize Round Button */}
+      {isRoundOver && !isFinalized && (
+        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl shadow-xl p-6 text-center">
+          <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100 mb-2">
+            Round Ended!
+          </h3>
+          <p className="text-purple-800 dark:text-purple-200 mb-4">
+            The round has ended. Finalize it to pick a winner and start the next round.
+          </p>
+          <button
+            onClick={handleFinalize}
+            disabled={txLoading}
+            className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
+          >
+            {txLoading ? 'Finalizing...' : 'Finalize Round'}
+          </button>
+        </div>
+      )}
+
+      {/* Participants List */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-6">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+          Current Participants ({participants.length})
+        </h3>
+        {participants.length > 0 ? (
+          <div className="max-h-48 overflow-y-auto space-y-2">
+            {participants.map((participant, index) => (
+              <div key={index} className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+                  {index + 1}
+                </div>
+                <span className="font-mono text-sm text-gray-600 dark:text-gray-400">
+                  {participant}
+                </span>
+                {participant.toLowerCase() === address?.toLowerCase() && (
+                  <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full">
+                    You
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+            No participants yet. Be the first to enter!
+          </p>
+        )}
+      </div>
     </div>
   );
 }

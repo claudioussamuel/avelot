@@ -32,11 +32,11 @@ export default function HowItWorks() {
     },
     {
       number: 4,
-      title: 'Winner Selected',
-      description: 'At round end, a random winner is selected to claim all the interest earned.',
+      title: 'Finalize Round',
+      description: 'Once the round ends, anyone can finalize it to pick a winner. The winner receives the accumulated interest!',
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       )
     },
