@@ -11,6 +11,7 @@ export default function UserDashboard() {
     userTicket,
     currentRound,
     currentRoundId,
+    activeRoundId,
     fetchHistory,
     address,
     claimWinnings,
@@ -100,6 +101,29 @@ export default function UserDashboard() {
           Your Dashboard
         </h2>
 
+        {/* Active Round Warning */}
+        {activeRoundId !== null && activeRoundId > BigInt(0) && currentRoundId !== null && activeRoundId < currentRoundId && (
+          <div className="mb-8 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-xl p-4">
+            <div className="flex items-start space-x-3">
+              <svg className="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-yellow-900 dark:text-yellow-100 mb-1">
+                  You're in an Old Round
+                </h3>
+                <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-3">
+                  You're still participating in Round #{activeRoundId.toString()}, but the current round is #{currentRoundId.toString()}.
+                  Please exit the old round below to withdraw your funds.
+                </p>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                  Scroll down to your ticket history to exit Round #{activeRoundId.toString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           <div className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl p-6 text-white shadow-lg">
@@ -157,8 +181,8 @@ export default function UserDashboard() {
                     <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0">
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${status === 'active' ? 'bg-blue-100 dark:bg-blue-900/30' :
-                            status === 'won' ? 'bg-emerald-100 dark:bg-emerald-900/30' :
-                              'bg-gray-100 dark:bg-gray-700'
+                          status === 'won' ? 'bg-emerald-100 dark:bg-emerald-900/30' :
+                            'bg-gray-100 dark:bg-gray-700'
                           }`}>
                           {status === 'active' && (
                             <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,8 +208,8 @@ export default function UserDashboard() {
                             Round #{item.roundId.toString()}
                           </p>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${status === 'active' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                              status === 'won' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                                'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
+                            status === 'won' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                              'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400'
                             }`}>
                             {status === 'active' ? 'Active' : status === 'won' ? 'Won!' : 'Ended'}
                           </span>

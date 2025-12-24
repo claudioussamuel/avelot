@@ -3,14 +3,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { type ReactNode, useState } from "react"
 import { PrivyProvider } from "@privy-io/react-auth"
-import { baseSepolia, base, sepolia, mainnet } from "viem/chains"
+import { baseSepolia, base, sepolia, mainnet, scroll } from "viem/chains"
 
 export function Providers(props: { children: ReactNode }) {
     const [queryClient] = useState(() => new QueryClient())
-    
+
     // Get Privy app ID from environment variables
     const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID
-    
+
     // If no Privy app ID is provided, render children without Privy provider
     if (!privyAppId) {
         return (
@@ -21,7 +21,7 @@ export function Providers(props: { children: ReactNode }) {
     }
 
     return (
-        <PrivyProvider 
+        <PrivyProvider
             config={{
                 loginMethods: [
                     "wallet",
@@ -35,8 +35,8 @@ export function Providers(props: { children: ReactNode }) {
                 embeddedWallets: {
                     createOnLogin: 'users-without-wallets',
                 },
-                defaultChain: baseSepolia,
-                supportedChains: [baseSepolia, base, sepolia, mainnet],
+                defaultChain: scroll,
+                supportedChains: [baseSepolia, base, sepolia, mainnet, scroll],
             }}
             appId={privyAppId}
         >

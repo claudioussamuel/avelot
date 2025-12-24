@@ -14,6 +14,7 @@ export default function LotteryInterface() {
     currentRound,
     userTicket,
     roundDuration,
+    activeRoundId,
     loading,
     authenticated,
     address,
@@ -135,22 +136,6 @@ export default function LotteryInterface() {
     }
   };
 
-  const handleFinalize = async () => {
-    setTxLoading(true);
-    setTxError(null);
-    setTxSuccess(null);
-
-    try {
-      await finalizeRound();
-      setTxSuccess('Round finalized successfully!');
-      await refreshRoundData();
-    } catch (error: any) {
-      setTxError(error.message || 'Failed to finalize round');
-    } finally {
-      setTxLoading(false);
-    }
-  };
-
   const formatTimeRemaining = (endTime: bigint) => {
     const now = Math.floor(Date.now() / 1000);
     const remaining = Number(endTime) - now;
@@ -215,28 +200,47 @@ export default function LotteryInterface() {
         </div>
 
         {currentRound ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4">
-              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Total Pool</p>
-              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                {formatUnits(currentRound.totalStake, USDC_DECIMALS)} USDC
-              </p>
-            </div>
+          currentRound.started ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4">
+                <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Total Pool</p>
+                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                  {formatUnits(currentRound.totalStake, USDC_DECIMALS)} USDC
+                </p>
+              </div>
 
-            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-4">
-              <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium mb-1">Award</p>
-              <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
-                {formatUnits(currentRound.award, USDC_DECIMALS)} USDC
-              </p>
-            </div>
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-4">
+                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium mb-1">Award</p>
+                <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
+                  {formatUnits(currentRound.award, USDC_DECIMALS)} USDC
+                </p>
+              </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4">
-              <p className="text-sm text-purple-600 dark:text-purple-400 font-medium mb-1">Time Remaining</p>
-              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                {formatTimeRemaining(currentRound.endTime)}
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4">
+                <p className="text-sm text-purple-600 dark:text-purple-400 font-medium mb-1">Time Remaining</p>
+                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                  {formatTimeRemaining(currentRound.endTime)}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-4">
+                <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                Round Not Started Yet
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Be the first to enter and start Round #{currentRoundId?.toString()}!
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                The round will begin when the first participant enters
               </p>
             </div>
-          </div>
+          )
         ) : (
           <div className="text-center py-8">
             <p className="text-gray-500 dark:text-gray-400">Loading round data...</p>
@@ -252,6 +256,29 @@ export default function LotteryInterface() {
             <p className="text-xs text-yellow-600 dark:text-yellow-400 font-mono">
               {currentRound.winner}
             </p>
+          </div>
+        )}
+
+        {/* Interest Earned Display */}
+        {currentRound && currentRound.started && currentRound.scaledBalanceStake > BigInt(0) && (
+          <div className="mt-6 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mb-1">
+                  Interest Earned (Aave)
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  Accumulating from lending pool
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+                  {currentRound.scaledBalanceStake > currentRound.totalStake
+                    ? formatUnits(currentRound.scaledBalanceStake - currentRound.totalStake, USDC_DECIMALS)
+                    : '0'} USDC
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -349,22 +376,23 @@ export default function LotteryInterface() {
         </div>
       )}
 
-      {/* Finalize Round Button */}
-      {isRoundOver && !isFinalized && (
-        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-2xl shadow-xl p-6 text-center">
-          <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100 mb-2">
-            Round Ended!
+      {/* Auto-Finalization Info */}
+      {isRoundOver && !isFinalized && currentRound?.started && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl shadow-xl p-6 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-3">
+            <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+            Round Ended
           </h3>
-          <p className="text-purple-800 dark:text-purple-200 mb-4">
-            The round has ended. Finalize it to pick a winner and start the next round.
+          <p className="text-blue-800 dark:text-blue-200 mb-2">
+            This round has ended and will be automatically finalized when the next participant enters the lottery.
           </p>
-          <button
-            onClick={handleFinalize}
-            disabled={txLoading}
-            className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
-          >
-            {txLoading ? 'Finalizing...' : 'Finalize Round'}
-          </button>
+          <p className="text-sm text-blue-600 dark:text-blue-400">
+            The winner will be selected and a new round will begin automatically.
+          </p>
         </div>
       )}
 

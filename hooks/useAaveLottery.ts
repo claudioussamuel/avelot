@@ -11,6 +11,7 @@ export interface Round {
   winner: Address;
   scaledBalanceStake: bigint;
   finalized: boolean;
+  started: boolean; // Track if round has been initialized
 }
 
 export interface Ticket {
@@ -34,6 +35,7 @@ export function useAaveLottery() {
   const [userTicket, setUserTicket] = useState<Ticket | null>(null);
   const [roundDuration, setRoundDuration] = useState<bigint | null>(null);
   const [underlyingToken, setUnderlyingToken] = useState<Address | null>(null);
+  const [activeRoundId, setActiveRoundId] = useState<bigint | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Read current round ID
@@ -114,6 +116,23 @@ export function useAaveLottery() {
       return token;
     } catch (error) {
       console.error("Error fetching underlying token:", error);
+      return null;
+    }
+  }, [readContract]);
+
+  // Fetch active round for a user
+  const fetchActiveRound = useCallback(async (userAddress: Address) => {
+    try {
+      const roundId = await readContract(
+        AAVE_LOTTERY_ADDRESS,
+        AAVE_LOTTERY_ABI,
+        "activeRound",
+        [userAddress]
+      ) as bigint;
+      setActiveRoundId(roundId);
+      return roundId;
+    } catch (error) {
+      console.error("Error fetching active round:", error);
       return null;
     }
   }, [readContract]);
@@ -262,7 +281,10 @@ export function useAaveLottery() {
         await fetchRound(roundId);
 
         if (address) {
-          await fetchUserTicket(roundId, address);
+          await Promise.all([
+            fetchUserTicket(roundId, address),
+            fetchActiveRound(address)
+          ]);
         }
       }
     };
@@ -270,7 +292,7 @@ export function useAaveLottery() {
     if (authenticated) {
       initializeData();
     }
-  }, [authenticated, address, fetchCurrentRoundId, fetchRound, fetchUserTicket, fetchRoundDuration, fetchUnderlyingToken]);
+  }, [authenticated, address, fetchCurrentRoundId, fetchRound, fetchUserTicket, fetchRoundDuration, fetchUnderlyingToken, fetchActiveRound]);
 
   // Refresh current round data
   const refreshRoundData = useCallback(async () => {
@@ -278,10 +300,13 @@ export function useAaveLottery() {
     if (roundId !== null) {
       await fetchRound(roundId);
       if (address) {
-        await fetchUserTicket(roundId, address);
+        await Promise.all([
+          fetchUserTicket(roundId, address),
+          fetchActiveRound(address)
+        ]);
       }
     }
-  }, [fetchCurrentRoundId, fetchRound, fetchUserTicket, address]);
+  }, [fetchCurrentRoundId, fetchRound, fetchUserTicket, fetchActiveRound, address]);
 
   return {
     // State
@@ -290,6 +315,7 @@ export function useAaveLottery() {
     userTicket,
     roundDuration,
     underlyingToken,
+    activeRoundId,
     loading,
     authenticated,
     address,
@@ -300,6 +326,7 @@ export function useAaveLottery() {
     fetchUserTicket,
     fetchRoundDuration,
     fetchUnderlyingToken,
+    fetchActiveRound,
     fetchRoundDirect,
     fetchTicketDirect,
     refreshRoundData,
