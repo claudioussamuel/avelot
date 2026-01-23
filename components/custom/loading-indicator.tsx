@@ -1,0 +1,17 @@
+import React from "react";
+
+export const LoadingIndicator = () => (
+    <div role="status" className="flex justify-center items-center h-24 text-white ">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" className="w-12 h-12">
+            <circle fill="currentColor" stroke="#000000" strokeWidth="15" r="35" cx="40" cy="100">
+                <animate attributeName="opacity" calcMode="spline" dur="2" values="1;0;1;" keySplines=".5 0 .5 1;.5 0 .5 1" repeatCount="indefinite" begin="-.4"></animate>
+            </circle>
+            <circle fill="currentColor" stroke="#000000" strokeWidth="15" r="35" cx="100" cy="100">
+                <animate attributeName="opacity" calcMode="spline" dur="2" values="1;0;1;" keySplines=".5 0 .5 1;.5 0 .5 1" repeatCount="indefinite" begin="-.2"></animate>
+            </circle>
+            <circle fill="currentColor" stroke="#000000" strokeWidth="15" r="35" cx="160" cy="100">
+                <animate attributeName="opacity" calcMode="spline" dur="2" values="1;0;1;" keySplines=".5 0 .5 1;.5 0 .5 1" repeatCount="indefinite" begin="0"></animate>
+            </circle>
+        </svg>
+    </div>
+);
