@@ -1,12 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 import { useViemWithPrivy } from "./useViemWithPrivy";
-import { USDC_ADDRESS, AAVE_LOTTERY_ADDRESS } from "@/constants/contracts";
-import { ERC20_ABI } from "@/constants/erc20-abi";
-import type { Address } from "viem";
+import { CHAINS_TO_CONTRACTS } from "@/constants/contracts";
+import { type Address, erc20Abi } from "viem";
 
 export function useUSDC() {
-  const { readContract, writeContract, waitForTransactionReceipt, address, authenticated } = useViemWithPrivy();
-  
+  const {
+    readContract,
+    writeContract,
+    waitForTransactionReceipt,
+    publicClient,
+    address,
+    authenticated,
+    chainId
+  } = useViemWithPrivy();
+
+  const usdcAddress = (CHAINS_TO_CONTRACTS[chainId]?.usdc || CHAINS_TO_CONTRACTS[8453].usdc) as Address;
+  const raffleAddress = (CHAINS_TO_CONTRACTS[chainId]?.raffle || CHAINS_TO_CONTRACTS[8453].raffle) as Address;
+
   const [balance, setBalance] = useState<bigint | null>(null);
   const [allowance, setAllowance] = useState<bigint | null>(null);
   const [loading, setLoading] = useState(false);
@@ -18,8 +28,8 @@ export function useUSDC() {
 
     try {
       const bal = await readContract(
-        USDC_ADDRESS,
-        ERC20_ABI,
+        usdcAddress,
+        erc20Abi,
         "balanceOf",
         [addr]
       ) as bigint;
@@ -29,7 +39,7 @@ export function useUSDC() {
       console.error("Error fetching USDC balance:", error);
       return null;
     }
-  }, [readContract, address]);
+  }, [readContract, address, usdcAddress]);
 
   // Fetch allowance for lottery contract
   const fetchAllowance = useCallback(async (userAddress?: Address) => {
@@ -38,10 +48,10 @@ export function useUSDC() {
 
     try {
       const allow = await readContract(
-        USDC_ADDRESS,
-        ERC20_ABI,
+        usdcAddress,
+        erc20Abi,
         "allowance",
-        [addr, AAVE_LOTTERY_ADDRESS]
+        [addr, raffleAddress]
       ) as bigint;
       setAllowance(allow);
       return allow;
@@ -49,7 +59,63 @@ export function useUSDC() {
       console.error("Error fetching USDC allowance:", error);
       return null;
     }
-  }, [readContract, address]);
+  }, [readContract, address, usdcAddress, raffleAddress]);
+
+  // Optimized refresh data using multicall
+  const refreshData = useCallback(async () => {
+    if (!address || !publicClient) return;
+
+    try {
+      const [balResult, allowResult] = await publicClient.multicall({
+        contracts: [
+          {
+            address: usdcAddress,
+            abi: erc20Abi,
+            functionName: 'balanceOf',
+            args: [address],
+          },
+          {
+            address: usdcAddress,
+            abi: erc20Abi,
+            functionName: 'allowance',
+            args: [address, raffleAddress],
+          },
+        ],
+      });
+
+      if (balResult.status === 'success') setBalance(balResult.result as bigint);
+      if (allowResult.status === 'success') setAllowance(allowResult.result as bigint);
+    } catch (error) {
+      console.error("Error refreshing USDC data with multicall:", error);
+      // Fallback to individual calls
+      await Promise.all([fetchBalance(address), fetchAllowance(address)]);
+    }
+  }, [address, publicClient, usdcAddress, raffleAddress, fetchBalance, fetchAllowance]);
+
+  // Transfer USDC
+  const transfer = useCallback(async (to: Address, amount: bigint) => {
+    if (!authenticated) throw new Error("Please connect your wallet first");
+
+    setLoading(true);
+    try {
+      const hash = await writeContract(
+        usdcAddress,
+        erc20Abi,
+        "transfer",
+        [to, amount]
+      );
+      console.log("Transfer transaction submitted:", hash);
+      const receipt = await waitForTransactionReceipt(hash);
+      console.log("Transfer confirmed:", receipt);
+      await refreshData();
+      return receipt;
+    } catch (error) {
+      console.error("Error transferring USDC:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [authenticated, writeContract, usdcAddress, waitForTransactionReceipt, refreshData]);
 
   // Approve USDC spending
   const approve = useCallback(async (amount: bigint) => {
@@ -60,20 +126,20 @@ export function useUSDC() {
     setLoading(true);
     try {
       const hash = await writeContract(
-        USDC_ADDRESS,
-        ERC20_ABI,
+        usdcAddress,
+        erc20Abi,
         "approve",
-        [AAVE_LOTTERY_ADDRESS, amount]
+        [raffleAddress, amount]
       );
 
       console.log("Approval transaction submitted:", hash);
-      
+
       const receipt = await waitForTransactionReceipt(hash);
       console.log("Approval confirmed:", receipt);
-      
-      // Refresh allowance after approval
-      await fetchAllowance();
-      
+
+      // Refresh data after approval
+      await refreshData();
+
       return receipt;
     } catch (error) {
       console.error("Error approving USDC:", error);
@@ -81,29 +147,41 @@ export function useUSDC() {
     } finally {
       setLoading(false);
     }
-  }, [authenticated, writeContract, waitForTransactionReceipt, fetchAllowance]);
+  }, [authenticated, writeContract, usdcAddress, raffleAddress, waitForTransactionReceipt, refreshData]);
+
+  // Watch for Transfer events
+  useEffect(() => {
+    if (!publicClient || !address || !usdcAddress) return;
+
+    const unwatch = publicClient.watchContractEvent({
+      address: usdcAddress,
+      abi: erc20Abi,
+      eventName: 'Transfer',
+      onLogs: (logs) => {
+        logs.forEach((log: any) => {
+          const { from, to, value } = log.args;
+          if (from?.toLowerCase() === address.toLowerCase() || to?.toLowerCase() === address.toLowerCase()) {
+            console.log(`USDC Transfer detected: ${from} -> ${to} (${value} units)`);
+            refreshData(); // Refresh balance/allowance on relevant transfers
+          }
+        });
+      },
+    });
+
+    return () => unwatch();
+  }, [publicClient, address, usdcAddress, refreshData]);
 
   // Check if user has sufficient balance
   const hasSufficientBalance = useCallback((amount: bigint) => {
-    if (!balance) return false;
+    if (balance === null) return false;
     return balance >= amount;
   }, [balance]);
 
   // Check if user has sufficient allowance
   const hasSufficientAllowance = useCallback((amount: bigint) => {
-    if (!allowance) return false;
+    if (allowance === null) return false;
     return allowance >= amount;
   }, [allowance]);
-
-  // Refresh all data
-  const refreshData = useCallback(async () => {
-    if (address) {
-      await Promise.all([
-        fetchBalance(address),
-        fetchAllowance(address)
-      ]);
-    }
-  }, [address, fetchBalance, fetchAllowance]);
 
   // Initialize data on mount and when address changes
   useEffect(() => {
@@ -127,6 +205,7 @@ export function useUSDC() {
 
     // Write functions
     approve,
+    transfer,
 
     // Helper functions
     hasSufficientBalance,

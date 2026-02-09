@@ -30,7 +30,7 @@ export default function UserDashboard() {
         try {
           const items = await fetchHistory(address);
           setHistory(items);
-        } catch (error) {
+        } catch (error: any) {
           console.error("Failed to load history", error);
         } finally {
           setLoadingHistory(false);
@@ -51,7 +51,7 @@ export default function UserDashboard() {
         setHistory(items);
       }
       await refreshRoundData();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Claim failed", error);
     } finally {
       setActionLoading(null);
@@ -68,7 +68,7 @@ export default function UserDashboard() {
         setHistory(items);
       }
       await refreshRoundData();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Exit failed", error);
     } finally {
       setActionLoading(null);

@@ -24,14 +24,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Providers>
-          {children}
-        </Providers>
-      </body>
-    </html>
+     <html lang="en">
+            <head>
+                <link rel="icon" href="/Avelot.png" sizes="any" />
+            </head>
+            <body className="bg-zinc-50 antialiased">
+                <Providers>
+                    {children}
+                </Providers>
+            </body>
+        </html>
   );
 }

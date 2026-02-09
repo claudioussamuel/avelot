@@ -22,6 +22,7 @@ export function Providers(props: { children: ReactNode }) {
 
     return (
         <PrivyProvider
+            key={privyAppId}
             config={{
                 loginMethods: [
                     "wallet",
@@ -35,8 +36,8 @@ export function Providers(props: { children: ReactNode }) {
                 embeddedWallets: {
                     createOnLogin: 'users-without-wallets',
                 },
-                defaultChain: scroll,
-                supportedChains: [baseSepolia, base, sepolia, mainnet, scroll],
+                defaultChain: base,
+                supportedChains: [baseSepolia, base, sepolia, mainnet],
             }}
             appId={privyAppId}
         >

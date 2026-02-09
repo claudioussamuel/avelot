@@ -13,8 +13,7 @@ export default function LotteryInterface() {
     currentRoundId,
     currentRound,
     userTicket,
-    roundDuration,
-    activeRoundId,
+    activeRounds,
     loading,
     authenticated,
     address,
@@ -89,7 +88,8 @@ export default function LotteryInterface() {
       }
 
       // Enter lottery
-      await enterLottery(amount);
+      if (!currentRoundId) throw new Error("No active round");
+      await enterLottery(currentRoundId, amount);
       setTxSuccess('Successfully entered the lottery!');
       setEntryAmount('');
       await Promise.all([refreshRoundData(), refreshUSDC()]);
@@ -200,7 +200,7 @@ export default function LotteryInterface() {
         </div>
 
         {currentRound ? (
-          currentRound.started ? (
+          currentRound.exists ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4">
                 <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Total Pool</p>
@@ -260,7 +260,7 @@ export default function LotteryInterface() {
         )}
 
         {/* Interest Earned Display */}
-        {currentRound && currentRound.started && currentRound.scaledBalanceStake > BigInt(0) && (
+        {currentRound && currentRound.exists && currentRound.scaledBalanceStake > BigInt(0) && (
           <div className="mt-6 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -370,14 +370,14 @@ export default function LotteryInterface() {
       )}
 
       {/* Round Duration Info */}
-      {roundDuration && (
+      {currentRound && currentRound.exists && (
         <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-          Round Duration: {(Number(roundDuration) / 86400).toFixed(1)} days
+          Round Duration: {(Number(currentRound.duration) / 86400).toFixed(1)} days
         </div>
       )}
 
       {/* Auto-Finalization Info */}
-      {isRoundOver && !isFinalized && currentRound?.started && (
+      {isRoundOver && !isFinalized && currentRound?.exists && (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl shadow-xl p-6 text-center">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full mb-3">
             <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
