@@ -1,0 +1,3 @@
+- [x] Add new state `allWinners` of type `RecentWinner[]` in app/page.tsx
+- [x] In the useEffect for finalizedRaffles, populate `allWinners` by mapping finalized raffles with winners
+- [x] Update WinnersPage component to pass `allWinners` to WinnersSection instead of `recentWinners`

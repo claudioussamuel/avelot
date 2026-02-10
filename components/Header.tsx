@@ -3,8 +3,9 @@
 import { usePrivy } from "@privy-io/react-auth"
 import Image from "next/image"
 import { useViemWithPrivy } from "@/hooks/useViemWithPrivy"
+import { useUSDC } from "@/hooks/useUSDC"
 import { base } from "viem/chains"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, ShieldCheck } from "lucide-react"
 
 export default function Header() {
   const {
@@ -16,6 +17,8 @@ export default function Header() {
     switchNetwork
   } = useViemWithPrivy();
 
+  const { approve: approveUSDC, loading: approvingUSDC } = useUSDC();
+
   const isWrongNetwork = authenticated && chainId !== base.id;
 
   const handleAuth = () => {
@@ -25,6 +28,8 @@ export default function Header() {
       login();
     }
   };
+
+
 
   return (
     <header className="sticky top-0 z-50 w-full glass-effect border-b border-zinc-200/50">
@@ -65,6 +70,7 @@ export default function Header() {
 
           {authenticated ? (
             <div className="flex items-center gap-3">
+              
               <div className="hidden sm:flex flex-col items-end">
                 <span className="text-xs font-semibold text-slate-900">Connected</span>
                 <span className="text-[10px] text-slate-500 font-mono">

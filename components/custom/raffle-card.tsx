@@ -1,15 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trophy, Clock, Users, ChevronRight, Zap } from 'lucide-react';
 import { Raffle } from '@/lib/types';
+import { formatTimeLeft } from '@/lib/raffleUtils';
 
 interface RaffleCardProps {
     raffle: Raffle;
     onEnter: (raffle: Raffle) => void;
     onFinalize?: (raffleId: number) => void;
+    onClaim?: (raffleId: number) => void;
+    onExit?: (raffleId: number) => void;
+    userTicket?: any;
+    userAddress?: string;
 }
 
-export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onEnter, onFinalize }) => {
+export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onEnter, onFinalize, onClaim, onExit, userTicket, userAddress }) => {
+    const [timeLeft, setTimeLeft] = useState(raffle.timeLeft); 
     const isRoundEnded = raffle.endTime && raffle.endTime * 1000 <= Date.now();
+
+    const isWinner = userTicket && raffle.winnerTicket !== undefined &&
+        raffle.winnerTicket >= userTicket.segmentStart &&
+        raffle.winnerTicket < userTicket.segmentStart + userTicket.stake;
+     const remaining = Math.max(0, raffle.endTime - Date.now() / 1000);
+    useEffect(() => {
+        if (raffle.finalized) {
+            setTimeLeft('Ended');
+            return;
+        }
+
+        const interval = setInterval(() => {
+            
+            setTimeLeft(formatTimeLeft(remaining));
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [raffle.endTime, raffle.finalized, remaining]);
 
     return (
         <div className="group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl hover:border-blue-200 transition-all duration-300 transform hover:-translate-y-1">
@@ -27,8 +51,8 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onEnter, onFinal
 
                 <div className="relative z-10 flex items-end justify-between">
                     <div>
-                        <p className="text-white/80 text-xs font-medium uppercase tracking-widest mb-0.5">Estimated Prize</p>
-                        <p className="text-3xl font-black text-white tracking-tight">{raffle.prize}</p>
+                        <p className="text-white/80 text-xs font-medium uppercase tracking-widest mb-0.5">Amount Staked</p>
+                        <p className="text-3xl font-black text-white tracking-tight">{raffle.entries.toLocaleString()} USDC</p>
                     </div>
                 </div>
             </div>
@@ -40,15 +64,15 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onEnter, onFinal
                             <Clock size={14} className="mr-1" />
                             Time Left
                         </div>
-                        <span className="text-slate-900 font-bold">{raffle.timeLeft}</span>
+                        <span className="text-slate-900 font-bold">{timeLeft}</span>
                     </div>
-                    <div className="flex flex-col">
+                    {/* <div className="flex flex-col">
                         <div className="flex items-center text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">
                             <Users size={14} className="mr-1" />
                             Participants
                         </div>
                         <span className="text-slate-900 font-bold">{raffle.entries.toLocaleString()}</span>
-                    </div>
+                    </div> */}
                 </div>
 
                 <div className="space-y-3 mb-6">
@@ -62,7 +86,27 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onEnter, onFinal
                     </div>
                 </div>
 
-                {isRoundEnded && onFinalize ? (
+                {raffle.finalized ? (
+                    <div className="flex gap-2">
+                        {isWinner && raffle.winner === '0x0000000000000000000000000000000000000000' && onClaim ? (
+                            <button
+                                onClick={() => onClaim(raffle.id)}
+                                className="w-full bg-yellow-500 text-white py-3.5 rounded-xl font-bold hover:bg-yellow-600 transition-all shadow-lg shadow-yellow-200 flex items-center justify-center gap-2 group/btn"
+                            >
+                                Claim Prize
+                                <Trophy size={18} className="transition-transform group-hover/btn:rotate-12" />
+                            </button>
+                        ) : onExit ? (
+                            <button
+                                onClick={() => onExit(raffle.id)}
+                                className="w-full bg-slate-100 text-slate-500 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition-all border border-slate-200 flex items-center justify-center gap-2 group/btn"
+                            >
+                                Exit Raffle
+                                <ChevronRight size={18} className="transition-transform group-hover/btn:translate-x-1" />
+                            </button>
+                        ) : null}
+                    </div>
+                ) : isRoundEnded && onFinalize ? (
                     <button
                         onClick={() => onFinalize(raffle.id)}
                         className="w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2 group/btn"

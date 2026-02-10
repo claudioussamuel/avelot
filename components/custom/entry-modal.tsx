@@ -7,9 +7,12 @@ interface EntryModalProps {
     onClose: () => void;
     onPurchase: (raffle: Raffle, ticketCount: number) => void;
     onFinalize: (raffleId: number) => void;
+    allowance: bigint;
+    onApprove: (amount: bigint) => Promise<void>;
+    isApproving: boolean;
 }
 
-export const EntryModal: React.FC<EntryModalProps> = ({ raffle, onClose, onPurchase, onFinalize }) => {
+export const EntryModal: React.FC<EntryModalProps> = ({ raffle, onClose, onPurchase, onFinalize, allowance, onApprove, isApproving }) => {
     const [ticketCount, setTicketCount] = React.useState(0.0);
 
     if (!raffle) return null;
@@ -77,22 +80,44 @@ export const EntryModal: React.FC<EntryModalProps> = ({ raffle, onClose, onPurch
                         </div>
                     )}
 
-                    <div className="flex gap-4">
-                        <button
-                            onClick={onClose}
-                            className="flex-1 px-6 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all border border-slate-200"
-                        >
-                            Back
-                        </button>
-                        <button
-                            onClick={() => isRoundEnded ? onFinalize(raffle.id) : onPurchase(raffle, ticketCount)}
-                            className={`flex-[2] px-6 py-4 rounded-2xl font-bold text-white transition-all shadow-lg ${isRoundEnded
-                                ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'
-                                : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'
-                                }`}
-                        >
-                            {isRoundEnded ? 'Finalize Draw' : 'Secure Entry'}
-                        </button>
+                    <div className="flex flex-col gap-3">
+                        {!isRoundEnded && (BigInt(Math.floor(ticketCount * 1000000)) > allowance) && (
+                            <button
+                                onClick={() => onApprove(BigInt(Math.floor(ticketCount * 1000000)))}
+                                disabled={isApproving}
+                                className="w-full px-6 py-4 rounded-2xl font-bold bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-lg shadow-amber-200 flex items-center justify-center gap-2"
+                            >
+                                {isApproving ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Approving USDC...
+                                    </>
+                                ) : (
+                                    <>
+                                        Approve USDC
+                                        <Zap size={18} />
+                                    </>
+                                )}
+                            </button>
+                        )}
+                        <div className="flex gap-4">
+                            <button
+                                onClick={onClose}
+                                className="flex-1 px-6 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-50 transition-all border border-slate-200"
+                            >
+                                Back
+                            </button>
+                            <button
+                                onClick={() => isRoundEnded ? onFinalize(raffle.id) : onPurchase(raffle, ticketCount)}
+                                disabled={!isRoundEnded && (BigInt(Math.floor(ticketCount * 1000000)) > allowance)}
+                                className={`flex-[2] px-6 py-4 rounded-2xl font-bold text-white transition-all shadow-lg ${isRoundEnded
+                                    ? 'bg-slate-900 hover:bg-slate-800 shadow-slate-200'
+                                    : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200 disabled:bg-blue-300 disabled:shadow-none disabled:cursor-not-allowed'
+                                    }`}
+                            >
+                                {isRoundEnded ? 'Finalize Draw' : 'Secure Entry'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

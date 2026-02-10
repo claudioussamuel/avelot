@@ -39,9 +39,11 @@ export function useAaveLottery() {
   const [userTicket, setUserTicket] = useState<Ticket | null>(null);
   const [underlyingToken, setUnderlyingToken] = useState<Address | null>(null);
   const [activeRounds, setActiveRounds] = useState<bigint[]>([]);
+  const [nonFinalizedRaffles, setNonFinalizedRaffles] = useState<Round[]>([]);
+  const [finalizedRaffles, setFinalizedRaffles] = useState<Round[]>([]);
+  const [admin, setAdmin] = useState<Address | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Read current round ID
   // Read current round ID (latest round created)
   const fetchCurrentRoundId = useCallback(async () => {
     try {
@@ -51,7 +53,7 @@ export function useAaveLottery() {
         "nextRoundId"
       ) as bigint;
 
-      const id = nextId > 0n ? nextId - 1n : 0n;
+      const id = nextId > BigInt(0) ? nextId - BigInt(1) : BigInt(0);
       setCurrentRoundId(id);
       return id;
     } catch (error) {
@@ -75,7 +77,7 @@ export function useAaveLottery() {
       console.error("Error fetching round:", error);
       return null;
     }
-  }, [readContract]);
+  }, [readContract, contractAddress]);
 
   // Read user ticket
   const fetchUserTicket = useCallback(async (roundId: bigint, userAddress: Address) => {
@@ -92,9 +94,8 @@ export function useAaveLottery() {
       console.error("Error fetching user ticket:", error);
       return null;
     }
-  }, [readContract]);
+  }, [readContract, contractAddress]);
 
-  // Read round duration
   // Read active rounds
   const fetchActiveRounds = useCallback(async () => {
     try {
@@ -125,9 +126,56 @@ export function useAaveLottery() {
       console.error("Error fetching underlying token:", error);
       return null;
     }
-  }, [readContract]);
+  }, [readContract, contractAddress]);
 
-  // Fetch active round for a user
+  // Read admin address
+  const fetchAdmin = useCallback(async () => {
+    try {
+      const adminAddr = await readContract(
+        contractAddress,
+        AAVE_LOTTERY_ABI,
+        "admin"
+      ) as Address;
+      setAdmin(adminAddr);
+      return adminAddr;
+    } catch (error) {
+      console.error("Error fetching admin:", error);
+      return null;
+    }
+  }, [readContract, contractAddress]);
+
+  // Read non-finalized raffles
+  const fetchNonFinalizedRaffles = useCallback(async () => {
+    try {
+      const raffles = await readContract(
+        contractAddress,
+        AAVE_LOTTERY_ABI,
+        "getNonFinalizedRaffles"
+      ) as Round[];
+      setNonFinalizedRaffles(raffles);
+      return raffles;
+    } catch (error) {
+      console.error("Error fetching non-finalized raffles:", error);
+      return [];
+    }
+  }, [readContract, contractAddress]);
+
+  // Read finalized raffles
+  const fetchFinalizedRaffles = useCallback(async () => {
+    try {
+      const raffles = await readContract(
+        contractAddress,
+        AAVE_LOTTERY_ABI,
+        "getFinalizedRaffles"
+      ) as Round[];
+      setFinalizedRaffles(raffles);
+      return raffles;
+    } catch (error) {
+      console.error("Error fetching finalized raffles:", error);
+      return [];
+    }
+  }, [readContract, contractAddress]);
+
   // Fetch rounds for a user
   const fetchUserRounds = useCallback(async (userAddress: Address) => {
     try {
@@ -158,7 +206,7 @@ export function useAaveLottery() {
       console.error("Error fetching round directly:", error);
       return null;
     }
-  }, [readContract]);
+  }, [readContract, contractAddress]);
 
   // Direct read from tickets mapping
   const fetchTicketDirect = useCallback(async (roundId: bigint, userAddress: Address) => {
@@ -174,17 +222,26 @@ export function useAaveLottery() {
       console.error("Error fetching ticket directly:", error);
       return null;
     }
-  }, [readContract]);
+  }, [readContract, contractAddress]);
 
-  // Enter lottery
   // Enter lottery
   const enterLottery = useCallback(async (roundId: bigint, amount: bigint) => {
     if (!authenticated) {
       throw new Error("Please connect your wallet first");
     }
 
+    if (!address) {
+      throw new Error("No wallet address available");
+    }
+
     setLoading(true);
     try {
+      // Check if user has already entered this raffle
+      const existingTicket = await fetchTicketDirect(roundId, address) as Ticket | null;
+      if (existingTicket && existingTicket.stake > BigInt(0)) {
+        throw new Error("You have already entered this raffle");
+      }
+
       const hash = await writeContract(
         contractAddress,
         AAVE_LOTTERY_ABI,
@@ -210,7 +267,7 @@ export function useAaveLottery() {
     } finally {
       setLoading(false);
     }
-  }, [authenticated, writeContract, waitForTransactionReceipt, fetchCurrentRoundId, fetchUserTicket, address, contractAddress]);
+  }, [authenticated, address, writeContract, waitForTransactionReceipt, fetchCurrentRoundId, fetchUserTicket, fetchTicketDirect, contractAddress]);
 
   // Exit lottery
   const exitLottery = useCallback(async (roundId: bigint) => {
@@ -244,7 +301,7 @@ export function useAaveLottery() {
     } finally {
       setLoading(false);
     }
-  }, [authenticated, writeContract, waitForTransactionReceipt, fetchUserTicket, address]);
+  }, [authenticated, writeContract, waitForTransactionReceipt, fetchUserTicket, address, contractAddress]);
 
   // Claim winnings
   const claimWinnings = useCallback(async (roundId: bigint) => {
@@ -273,14 +330,17 @@ export function useAaveLottery() {
     } finally {
       setLoading(false);
     }
-  }, [authenticated, writeContract, waitForTransactionReceipt]);
+  }, [authenticated, writeContract, waitForTransactionReceipt, contractAddress]);
 
   // Initialize data on mount and when address changes
   useEffect(() => {
     const initializeData = async () => {
       await Promise.all([
         fetchActiveRounds(),
-        fetchUnderlyingToken()
+        fetchNonFinalizedRaffles(),
+        fetchFinalizedRaffles(),
+        fetchUnderlyingToken(),
+        fetchAdmin()
       ]);
 
       const roundId = await fetchCurrentRoundId();
@@ -300,7 +360,7 @@ export function useAaveLottery() {
     if (authenticated) {
       initializeData();
     }
-  }, [authenticated, address, fetchCurrentRoundId, fetchRound, fetchUserTicket, fetchActiveRounds, fetchUnderlyingToken, fetchUserRounds]);
+  }, [authenticated, address, fetchCurrentRoundId, fetchRound, fetchUserTicket, fetchActiveRounds, fetchUnderlyingToken, fetchAdmin, fetchUserRounds]);
 
   // Refresh current round data
   const refreshRoundData = useCallback(async () => {
@@ -322,7 +382,10 @@ export function useAaveLottery() {
     currentRound,
     userTicket,
     activeRounds,
+    nonFinalizedRaffles,
+    finalizedRaffles,
     underlyingToken,
+    admin,
     loading,
     authenticated,
     address,
@@ -332,7 +395,10 @@ export function useAaveLottery() {
     fetchRound,
     fetchUserTicket,
     fetchActiveRounds,
+    fetchNonFinalizedRaffles,
+    fetchFinalizedRaffles,
     fetchUnderlyingToken,
+    fetchAdmin,
     fetchUserRounds,
     fetchRoundDirect,
     fetchTicketDirect,
@@ -389,6 +455,17 @@ export function useAaveLottery() {
           await fetchRound(currentRoundId);
         }
 
+        // Compare user address to winner address
+        if (address) {
+          const round = await fetchRound(roundId);
+          if (round && round.winner === address) {
+            await claimWinnings(roundId);
+            await exitLottery(roundId);
+          } else if (round) {
+            await exitLottery(roundId);
+          }
+        }
+
         return receipt;
       } catch (error) {
         console.error("Error finalizing round:", error);
@@ -396,7 +473,7 @@ export function useAaveLottery() {
       } finally {
         setLoading(false);
       }
-    }, [authenticated, writeContract, waitForTransactionReceipt, fetchCurrentRoundId, fetchRound, currentRoundId, contractAddress]),
+    }, [authenticated, writeContract, waitForTransactionReceipt, fetchCurrentRoundId, fetchRound, currentRoundId, contractAddress, address, claimWinnings, exitLottery]),
     fetchParticipants: useCallback(async (roundId: bigint) => {
       if (!publicClient) return [];
       try {
@@ -421,8 +498,8 @@ export function useAaveLottery() {
         // Extract unique users
         const users = new Set<Address>();
         logs.forEach(log => {
-          if (log.args && log.args.user) {
-            users.add(log.args.user);
+          if (log.args && (log.args as any).user) {
+            users.add((log.args as any).user);
           }
         });
 
@@ -431,7 +508,7 @@ export function useAaveLottery() {
         console.error("Error fetching participants:", error);
         return [];
       }
-    }, [publicClient]),
+    }, [publicClient, contractAddress]),
     fetchHistory: useCallback(async (userAddress: Address) => {
       if (!currentRoundId) return [];
       const history: HistoryItem[] = [];
@@ -454,6 +531,6 @@ export function useAaveLottery() {
         }
       }
       return history;
-    }, [currentRoundId, readContract])
+    }, [currentRoundId, readContract, contractAddress])
   };
 }

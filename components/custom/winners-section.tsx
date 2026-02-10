@@ -13,7 +13,7 @@ export const WinnersSection: React.FC<WinnersSectionProps> = ({ winners }) => (
                 <div className="p-2 bg-yellow-100 text-yellow-600 rounded-xl">
                     <Trophy size={20} />
                 </div>
-                Past Hall of Fame
+                Winners
             </h3>
             <Award className="text-slate-300" size={24} />
         </div>

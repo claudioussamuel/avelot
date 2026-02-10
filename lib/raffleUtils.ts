@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Raffle } from './types';
 
 export function formatTimeLeft(seconds: number): string {
@@ -10,6 +11,22 @@ export function formatTimeLeft(seconds: number): string {
     if (days > 0) return `${days}d ${hours}h`;
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
+}
+
+export function useRealTimeCountdown(raffles: Raffle[], setRaffles: (raffles: Raffle[]) => void) {
+    const rafflesRef = useRef(raffles);
+    rafflesRef.current = raffles;
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setRaffles(rafflesRef.current.map(raffle => ({
+                ...raffle,
+                timeLeft: raffle.finalized ? 'Ended' : formatTimeLeft(Math.max(0, raffle.endTime - Date.now() / 1000))
+            })));
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [setRaffles]);
 }
 
 export function convertToWei(amount: number, decimals: number = 18): bigint {

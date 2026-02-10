@@ -79,13 +79,9 @@ export default function WinnerHistory() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Participants</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{winner.participants}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Staked</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Amount Staked</p>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">{winner.totalStaked} USDC</p>
                 </div>
                 <div>

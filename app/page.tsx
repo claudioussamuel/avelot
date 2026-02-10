@@ -1,20 +1,20 @@
 "use client"
 
 import { useEffect, useState } from 'react';
-import { Calendar, Trophy, Users, Gift } from 'lucide-react';
-import { Raffle, UserEntry, RecentWinner } from '@/lib/types';
-import { convertFromWei, formatTimeLeft } from '@/lib/raffleUtils';
+import { Raffle, RecentWinner } from '@/lib/types';
+import { convertFromWei, formatTimeLeft, useRealTimeCountdown } from '@/lib/raffleUtils';
 import { useAaveLottery } from '@/hooks/useAaveLottery';
 import { useUSDC } from '@/hooks/useUSDC';
 import Header from '@/components/Header';
 
 // Components
 import { RaffleCard } from '@/components/custom/raffle-card';
-import { MyEntriesSection } from '@/components/custom/my-entries';
 import { WinnersSection } from '@/components/custom/winners-section';
 import { EntryModal } from '@/components/custom/entry-modal';
 import { DepositModal } from '@/components/custom/deposit-modal';
 import { BottomNav } from '@/components/custom/BottomNav';
+
+import {  toast } from 'react-toastify';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('home');
@@ -22,14 +22,18 @@ export default function Home() {
   const [filterType, setFilterType] = useState('all');
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [recentWinners, setRecentWinners] = useState<RecentWinner[]>([]);
-  const [raffles, setRaffles] = useState<Raffle[]>([]);
-  const [myEntries, setMyEntries] = useState<UserEntry[]>([]);
+  const [allWinners, setAllWinners] = useState<RecentWinner[]>([]);
+  const [activeRaffles, setActiveRaffles] = useState<Raffle[]>([]);
+  const [pastRaffles, setPastRaffles] = useState<Raffle[]>([]);
+  const [userTickets, setUserTickets] = useState<Record<number, any>>({});
 
   const {
     currentRoundId,
     currentRound,
     userTicket,
     activeRounds,
+    nonFinalizedRaffles,
+    finalizedRaffles,
     loading: lotteryLoading,
     authenticated,
     address,
@@ -39,47 +43,74 @@ export default function Home() {
     finalizeRound,
   } = useAaveLottery();
 
-  const { balance: usdcBalance } = useUSDC();
+  const {
+    balance: usdcBalance,
+    allowance: usdcAllowance,
+    approve: approveUSDC,
+    loading: usdcLoading
+  } = useUSDC();
 
-  // Process current round into Raffle object
+  // Process non-finalized rounds into active Raffle objects
   useEffect(() => {
-    if (currentRoundId !== null && currentRound) {
-      const raffle: Raffle = {
-        id: Number(currentRoundId),
-        name: `Round #${currentRoundId}`,
-        type: 'Current Draw',
-        prize: `$${convertFromWei(currentRound.award).toFixed(2)}`,
-        entries: Number(currentRound.totalStake) / 1000000,
-        timeLeft: formatTimeLeft(Math.max(0, Number(currentRound.endTime) - Date.now() / 1000)),
-        endDate: new Date(Number(currentRound.endTime) * 1000).toLocaleDateString(),
-        endTime: Number(currentRound.endTime),
+    if (nonFinalizedRaffles.length > 0) {
+      const processedRaffles: Raffle[] = nonFinalizedRaffles.map(round => ({
+        id: Number(round.roundId),
+        name: round.name || `Round #${round.roundId}`,
+        type: 'Active Draw',
+        prize: `$${convertFromWei(round.award).toFixed(2)}`,
+        entries: Number(round.totalStake) / 1000000,
+        timeLeft: formatTimeLeft(Math.max(0, Number(round.endTime) - Date.now() / 1000)),
+        endDate: new Date(Number(round.endTime) * 1000).toLocaleDateString(),
+        endTime: Number(round.endTime),
         ticketPrice: '$0',
-        odds: `1:${currentRound.totalStake > 0 ? (currentRound.totalStake / BigInt(1000000)).toString() : '1'}`,
+        odds: `1:${round.totalStake > BigInt(0) ? (round.totalStake / BigInt(1000000)).toString() : '1'}`,
         color: 'from-blue-600 to-indigo-600',
-        finalized: currentRound.finalized,
-        winner: currentRound.winner !== '0x0000000000000000000000000000000000000000' ? currentRound.winner : undefined,
-      };
-      setRaffles([raffle]);
+        finalized: round.finalized,
+        winner: round.winner !== '0x0000000000000000000000000000000000000000' ? round.winner : undefined,
+      }));
+      setActiveRaffles(processedRaffles);
+    } else {
+      setActiveRaffles([]);
     }
-  }, [currentRoundId, currentRound]);
+  }, [nonFinalizedRaffles]);
 
-  // Process user entries
+  // Process finalized rounds into past Raffle objects
   useEffect(() => {
-    if (authenticated && userTicket && currentRoundId !== null) {
-      const entries: UserEntry[] = [];
-      if (userTicket.stake > 0) {
-        const isWinner = currentRound?.winner?.toLowerCase() === address?.toLowerCase();
-        entries.push({
-          raffleId: Number(currentRoundId),
-          tickets: Number(userTicket.stake) / 1000000,
-          position: isWinner ? 'Winner' : (currentRound?.finalized ? 'Completed' : 'Active'),
-          isWinner: isWinner,
-          finalized: currentRound?.finalized
-        });
-      }
-      setMyEntries(entries);
+    if (finalizedRaffles.length > 0) {
+      const processedRaffles: Raffle[] = finalizedRaffles.map((round: any) => ({
+        id: Number(round.roundId),
+        name: round.name || `Round #${round.roundId}`,
+        type: 'Past Draw',
+        prize: `$${convertFromWei(round.award).toFixed(2)}`,
+        entries: Number(round.totalStake) / 1000000,
+        timeLeft: 'Ended',
+        endDate: new Date(Number(round.endTime) * 1000).toLocaleDateString(),
+        endTime: Number(round.endTime),
+        ticketPrice: '$0',
+        odds: `1:${round.totalStake > BigInt(0) ? (round.totalStake / BigInt(1000000)).toString() : '1'}`,
+        color: 'from-gray-600 to-gray-600',
+        finalized: round.finalized,
+        winner: round.winner !== '0x0000000000000000000000000000000000000000' ? round.winner : undefined,
+        winnerTicket: Number(round.winnerTicket),
+      }));
+      setPastRaffles(processedRaffles);
+
+      // Process all winners from finalized raffles
+      const winners: RecentWinner[] = finalizedRaffles
+        .filter((round: any) => round.winner !== '0x0000000000000000000000000000000000000000')
+        .map((round: any) => ({
+          name: round.winner.slice(0, 6) + '...' + round.winner.slice(-4),
+          raffle: `Round #${round.roundId}`,
+          prize: `$${convertFromWei(round.award).toFixed(2)}`,
+          date: new Date(Number(round.endTime) * 1000).toLocaleDateString(),
+        }));
+      setAllWinners(winners);
+    } else {
+      setAllWinners([]);
     }
-  }, [authenticated, userTicket, currentRoundId, currentRound, address]);
+  }, [finalizedRaffles]);
+
+
 
   // Process recent winners
   useEffect(() => {
@@ -100,59 +131,64 @@ export default function Home() {
       if (!currentRoundId) throw new Error("No active round");
       await enterLottery(BigInt(raffle.id), BigInt(amount * 1000000));
       setSelectedRaffle(null);
-      alert('Successfully entered the raffle!');
+      toast('Successfully entered the raffle!');
     } catch (error) {
       console.error(error);
-      alert('Failed to enter raffle. Check console for details.');
+      toast('Failed to enter raffle. Check console for details.');
     }
   };
 
   const handleExitRaffle = async (raffleId: number) => {
     try {
       await exitLottery(BigInt(raffleId));
-      alert('Successfully withdrawn contribution!');
+      toast('Successfully withdrawn contribution!');
     } catch (error) {
       console.error(error);
-      alert('Failed to withdraw. Check console for details.');
+      toast('Failed to withdraw. Check console for details.');
     }
   };
 
   const handleClaimPrize = async (raffleId: number) => {
     try {
       await claimWinnings(BigInt(raffleId));
-      alert('Prize claimed successfully!');
+      toast('Prize claimed successfully!');
     } catch (error) {
       console.error(error);
-      alert('Failed to claim prize. Check console for details.');
+      toast('Failed to claim prize. Check console for details.');
     }
   };
 
   const handleFinalize = async (raffleId: number) => {
     try {
       await finalizeRound(BigInt(raffleId));
-      alert('Round finalized successfully!');
+      toast('Round finalized successfully!');
     } catch (error) {
       console.error(error);
-      alert('Failed to finalize round. Check console for details.');
+      toast('Failed to finalize round. Check console for details.');
     }
   };
 
   const handleDeposit = (amount: number) => {
     setShowDepositModal(false);
-    alert(`This is a demo. Please use the "Enter Raffle" button to stake USDC.`);
+    toast(`This is a demo. Please use the "Enter Raffle" button to stake USDC.`);
   };
 
   const RafflesPage = () => (
     <div className="animate-in fade-in duration-500">
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">All Draws</h2>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Past Raffles</h2>
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
-        {raffles.map((raffle) => (
-          <RaffleCard key={raffle.id} raffle={raffle} onEnter={setSelectedRaffle} onFinalize={handleFinalize} />
+        {pastRaffles.map((raffle) => (
+          <RaffleCard key={raffle.id} raffle={raffle} onEnter={setSelectedRaffle} onFinalize={handleFinalize} onClaim={handleClaimPrize} onExit={handleExitRaffle} userTicket={userTickets[raffle.id]} userAddress={address} />
         ))}
+        {pastRaffles.length === 0 && (
+          <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-slate-300">
+            <p className="text-slate-400 font-medium">No past raffles found.</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -161,7 +197,7 @@ export default function Home() {
     <div className="mb-20">
       <h2 className="text-2xl font-bold mb-6 text-slate-900">Recent Winners</h2>
       <div className="bg-white rounded-xl shadow-md p-6">
-        <WinnersSection winners={recentWinners} />
+        <WinnersSection winners={allWinners} />
       </div>
     </div>
   );
@@ -210,38 +246,16 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-              {raffles.map((raffle) => (
+              {activeRaffles.map((raffle) => (
                 <RaffleCard key={raffle.id} raffle={raffle} onEnter={setSelectedRaffle} onFinalize={handleFinalize} />
               ))}
-              {raffles.length === 0 && (
+              {activeRaffles.length === 0 && (
                 <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-slate-300">
                   <p className="text-slate-400 font-medium">No active raffles found. Please check back later.</p>
                 </div>
               )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-              <div className="lg:col-span-2 space-y-6">
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">My Entries</h3>
-                {authenticated ? (
-                  <MyEntriesSection
-                    entries={myEntries}
-                    raffles={raffles}
-                    onClaim={handleClaimPrize}
-                    onExit={handleExitRaffle}
-                  />
-                ) : (
-                  <div className="bg-white rounded-3xl p-10 text-center border border-slate-200 shadow-sm">
-                    <p className="text-slate-500 font-medium">Please connect your wallet to view your entries.</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-6">
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Top Winners</h3>
-                <WinnersSection winners={recentWinners} />
-              </div>
-            </div>
           </div>
         )}
 
@@ -258,6 +272,16 @@ export default function Home() {
         onClose={() => setSelectedRaffle(null)}
         onPurchase={handlePurchase}
         onFinalize={handleFinalize}
+        allowance={usdcAllowance || BigInt(0)}
+        onApprove={async (amount) => {
+          try {
+            await approveUSDC(amount);
+          } catch (error) {
+            console.error(error);
+            toast("Failed to approve USDC");
+          }
+        }}
+        isApproving={usdcLoading}
       />
 
       <DepositModal

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Raffle, UserEntry } from '@/lib/types';
+import { formatTimeLeft } from '@/lib/raffleUtils';
 import { Ticket, Clock, ArrowUpRight, LogOut } from 'lucide-react';
 
 interface MyEntriesSectionProps {
