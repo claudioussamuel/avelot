@@ -175,8 +175,6 @@ export function useViemWithPrivy() {
         switchNetwork,
         login,
         logout,
-        user,
-        authenticated,
         address: user?.wallet?.address as Address | undefined,
         chainId,
     };
