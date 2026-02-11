@@ -14,13 +14,14 @@ interface RaffleCardProps {
 }
 
 export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onEnter, onFinalize, onClaim, onExit, userTicket, userAddress }) => {
-    const [timeLeft, setTimeLeft] = useState(raffle.timeLeft); 
+    const [timeLeft, setTimeLeft] = useState(raffle.timeLeft);
     const isRoundEnded = raffle.endTime && raffle.endTime * 1000 <= Date.now();
 
-    const isWinner = userTicket && raffle.winnerTicket !== undefined &&
-        raffle.winnerTicket >= userTicket.segmentStart &&
-        raffle.winnerTicket < userTicket.segmentStart + userTicket.stake;
-     const remaining = Math.max(0, raffle.endTime - Date.now() / 1000);
+    const isWinner = userTicket && raffle.winner == userAddress;
+    const hasParticipated = userTicket && userTicket.stake > BigInt(0);
+    const hasExited = userTicket && userTicket.exited;
+    const hasClaimed = userTicket && userTicket.claimed;
+    const remaining = Math.max(0, raffle.endTime - Date.now() / 1000);
     useEffect(() => {
         if (raffle.finalized) {
             setTimeLeft('Ended');
@@ -88,7 +89,7 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onEnter, onFinal
 
                 {raffle.finalized ? (
                     <div className="flex gap-2">
-                        {isWinner && raffle.winner === '0x0000000000000000000000000000000000000000' && onClaim ? (
+                        {isWinner && !hasClaimed && onClaim ? (
                             <button
                                 onClick={() => onClaim(raffle.id)}
                                 className="w-full bg-yellow-500 text-white py-3.5 rounded-xl font-bold hover:bg-yellow-600 transition-all shadow-lg shadow-yellow-200 flex items-center justify-center gap-2 group/btn"
@@ -96,7 +97,7 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onEnter, onFinal
                                 Claim Prize
                                 <Trophy size={18} className="transition-transform group-hover/btn:rotate-12" />
                             </button>
-                        ) : onExit ? (
+                        ) : hasParticipated && !hasExited && onExit ? (
                             <button
                                 onClick={() => onExit(raffle.id)}
                                 className="w-full bg-slate-100 text-slate-500 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition-all border border-slate-200 flex items-center justify-center gap-2 group/btn"
@@ -104,7 +105,11 @@ export const RaffleCard: React.FC<RaffleCardProps> = ({ raffle, onEnter, onFinal
                                 Exit Raffle
                                 <ChevronRight size={18} className="transition-transform group-hover/btn:translate-x-1" />
                             </button>
-                        ) : null}
+                        ) : (
+                            <div className="w-full py-3.5 rounded-xl font-bold text-center text-slate-400 bg-slate-50 border border-slate-100">
+                                {isWinner ? 'Prize Claimed' : hasExited ? 'Exited' : 'Not Participated'}
+                            </div>
+                        )}
                     </div>
                 ) : isRoundEnded && onFinalize ? (
                     <button

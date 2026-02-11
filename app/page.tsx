@@ -26,6 +26,7 @@ export default function Home() {
   const [activeRaffles, setActiveRaffles] = useState<Raffle[]>([]);
   const [pastRaffles, setPastRaffles] = useState<Raffle[]>([]);
   const [userTickets, setUserTickets] = useState<Record<number, any>>({});
+  const [allUserRounds, setAllUserRounds] = useState<bigint[]>([]);
 
   const {
     currentRoundId,
@@ -41,6 +42,8 @@ export default function Home() {
     exitLottery,
     claimWinnings,
     finalizeRound,
+    fetchUserRounds,
+    fetchTicketDirect,
   } = useAaveLottery();
 
   const {
@@ -125,6 +128,33 @@ export default function Home() {
       setRecentWinners([]);
     }
   }, [currentRound, currentRoundId]);
+
+  // Fetch user tickets for all raffles
+  useEffect(() => {
+    const fetchUserTickets = async () => {
+      if (!address) return;
+
+      const userRounds = await fetchUserRounds(address);
+      setAllUserRounds(userRounds);
+
+      const tickets: Record<number, any> = {};
+      for (const roundId of userRounds) {
+        try {
+          const ticket = await fetchTicketDirect(roundId, address);
+          if (ticket && ticket.stake > BigInt(0)) {
+            tickets[Number(roundId)] = ticket;
+          }
+        } catch (error) {
+          console.error(`Error fetching ticket for round ${roundId}:`, error);
+        }
+      }
+      setUserTickets(tickets);
+    };
+
+    if (authenticated && address) {
+      fetchUserTickets();
+    }
+  }, [authenticated, address, fetchUserRounds, fetchTicketDirect, nonFinalizedRaffles, finalizedRaffles]);
 
   const handlePurchase = async (raffle: Raffle, amount: number) => {
     try {

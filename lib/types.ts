@@ -12,7 +12,7 @@ export interface Raffle {
     color: string;
     finalized?: boolean;
     winner?: string;
-    winnerTicket?: number;
+    winnerTicket?: number; 
 }
 
 export interface UserEntry {

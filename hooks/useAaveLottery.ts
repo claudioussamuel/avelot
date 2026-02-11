@@ -290,6 +290,7 @@ export function useAaveLottery() {
       console.log("Transaction confirmed:", receipt);
 
       // Refresh data after successful exit
+      await refreshAllRaffles();
       if (address) {
         await fetchUserTicket(roundId, address);
       }
@@ -323,6 +324,9 @@ export function useAaveLottery() {
       const receipt = await waitForTransactionReceipt(hash);
       console.log("Transaction confirmed:", receipt);
 
+      // Refresh data after successful claim
+      await refreshAllRaffles();
+
       return receipt;
     } catch (error) {
       console.error("Error claiming winnings:", error);
@@ -331,6 +335,15 @@ export function useAaveLottery() {
       setLoading(false);
     }
   }, [authenticated, writeContract, waitForTransactionReceipt, contractAddress]);
+
+  // Refresh all raffles
+  const refreshAllRaffles = useCallback(async () => {
+    await Promise.all([
+      fetchActiveRounds(),
+      fetchNonFinalizedRaffles(),
+      fetchFinalizedRaffles()
+    ]);
+  }, [fetchActiveRounds, fetchNonFinalizedRaffles, fetchFinalizedRaffles]);
 
   // Initialize data on mount and when address changes
   useEffect(() => {
@@ -419,6 +432,7 @@ export function useAaveLottery() {
           [name, duration]
         );
         const receipt = await waitForTransactionReceipt(hash);
+        await refreshAllRaffles();
         await fetchCurrentRoundId();
         return receipt;
       } catch (error) {
@@ -449,24 +463,14 @@ export function useAaveLottery() {
         const receipt = await waitForTransactionReceipt(hash);
         console.log("Transaction confirmed:", receipt);
 
-        // Refresh data after successful finalization
-        await fetchCurrentRoundId();
-        if (currentRoundId) {
-          await fetchRound(currentRoundId);
-        }
+      // Refresh data after successful finalization
+      await refreshAllRaffles();
+      await fetchCurrentRoundId();
+      if (currentRoundId) {
+        await fetchRound(currentRoundId);
+      }
 
-        // Compare user address to winner address
-        if (address) {
-          const round = await fetchRound(roundId);
-          if (round && round.winner === address) {
-            await claimWinnings(roundId);
-            await exitLottery(roundId);
-          } else if (round) {
-            await exitLottery(roundId);
-          }
-        }
-
-        return receipt;
+      return receipt;
       } catch (error) {
         console.error("Error finalizing round:", error);
         throw error;
