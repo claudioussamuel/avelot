@@ -19,10 +19,10 @@ export default function LotteryInterface() {
     address,
     enterLottery,
     exitLottery,
-    claimWinnings,
     finalizeRound,
     refreshRoundData,
     fetchParticipants,
+    claimWinnings,
   } = useAaveLottery();
 
   const {

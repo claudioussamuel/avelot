@@ -40,7 +40,6 @@ export default function Home() {
     address,
     enterLottery,
     exitLottery,
-    claimWinnings,
     finalizeRound,
     fetchUserRounds,
     fetchTicketDirect,
@@ -140,8 +139,8 @@ export default function Home() {
       const tickets: Record<number, any> = {};
       for (const roundId of userRounds) {
         try {
-          const ticket = await fetchTicketDirect(roundId, address);
-          if (ticket && ticket.stake > BigInt(0)) {
+          const ticket = await fetchTicketDirect(roundId, address) as any;
+          if (ticket && ticket.stake && ticket.stake > BigInt(0)) {
             tickets[Number(roundId)] = ticket;
           }
         } catch (error) {
@@ -178,15 +177,7 @@ export default function Home() {
     }
   };
 
-  const handleClaimPrize = async (raffleId: number) => {
-    try {
-      await claimWinnings(BigInt(raffleId));
-      toast('Prize claimed successfully!');
-    } catch (error) {
-      console.error(error);
-      toast('Failed to claim prize. Check console for details.');
-    }
-  };
+
 
   const handleFinalize = async (raffleId: number) => {
     try {
@@ -212,7 +203,7 @@ export default function Home() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
         {pastRaffles.map((raffle) => (
-          <RaffleCard key={raffle.id} raffle={raffle} onEnter={setSelectedRaffle} onFinalize={handleFinalize} onClaim={handleClaimPrize} onExit={handleExitRaffle} userTicket={userTickets[raffle.id]} userAddress={address} />
+          <RaffleCard key={raffle.id} raffle={raffle} onEnter={setSelectedRaffle} onFinalize={handleFinalize} onExit={handleExitRaffle} userTicket={userTickets[raffle.id]} userAddress={address} />
         ))}
         {pastRaffles.length === 0 && (
           <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-slate-300">

@@ -477,7 +477,7 @@ export function useAaveLottery() {
       } finally {
         setLoading(false);
       }
-    }, [authenticated, writeContract, waitForTransactionReceipt, fetchCurrentRoundId, fetchRound, currentRoundId, contractAddress, address, claimWinnings, exitLottery]),
+    }, [authenticated, writeContract, waitForTransactionReceipt, fetchCurrentRoundId, fetchRound, currentRoundId, contractAddress, address, exitLottery]),
     fetchParticipants: useCallback(async (roundId: bigint) => {
       if (!publicClient) return [];
       try {
