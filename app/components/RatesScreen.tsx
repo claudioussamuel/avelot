@@ -37,8 +37,7 @@ export default function RatesScreen() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {[
             { title: "Flexible Savings", apy: "6.5%", description: "Withdraw anytime, zero penalties." },
-            // { title: "3-Month Lock", apy: "9.2%", description: "Higher yield for committed capital." },
-            // { title: "6-Month Lock", apy: "12.0%", description: "Maximum stable returns." },
+
           ].map((rate, i) => (
             <div key={i} style={{ background: "#fff", borderRadius: 20, padding: 20, border: "1px solid #E5E4DF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
